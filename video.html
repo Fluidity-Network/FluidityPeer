@@ -8,33 +8,45 @@
 		<main style="display: none">
 			<p id="id">FluidityPeer ID: </p>
 			<input id="conn_id" placeholder="FluidityPeer ID" /><button onclick="callUser()" id="conn_id_btn">Call</button><br>
-			<video id="video_self" autoplay style="display: none; width: calc(50% - 10px);"></video>
-			<video id="video" autoplay style="display: none; width: calc(50% - 10px);"></video>
+			<p id="status" style="display: none"></p>
+			<video id="video_self" autoplay playsinline style="display: none; width: calc(50% - 10px);"></video>
+			<video id="video" autoplay playsinline style="display: none; width: calc(50% - 10px);"></video>
 		</main>
 		<script>
 			async function init() {
+				var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
+				await getUserMedia({video: true, audio: true}, (stream) => {
+					window.stream_audio_video = stream;
+				});
+				await getUserMedia({video: true, audio: false}, (stream) => {
+					window.stream_video = stream;
+				});
+				
 				window.peer = await new FluidityPeer();
 				console.log("FluidityPeer ID: " + peer.id);
 				peer.onReceive = (data, conn_id, peer_id) => {
 					
 				}
 				var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-				peer.peer.on('call', function(call) {
-					getUserMedia({video: true, audio: true}, function(stream) {
-						call.answer(stream);
-						call.on('stream', function(remoteStream) {
-							document.querySelector("#conn_id").style.display = "none";
-							document.querySelector("#conn_id_btn").style.display = "none";
-							document.querySelector("#video").srcObject = remoteStream;
-							document.querySelector("#video").style.display = "inline-block";
-							getUserMedia({video: true, audio: false}, function(myStream) {
-								document.querySelector("#video_self").srcObject = myStream;
-								document.querySelector("#video_self").style.display = "inline-block";
+				peer.peer.on('call', async (call) => {
+					if(confirm("Incoming call from " + call.peer + ". Answer?")) {
+						await call.answer(window.stream_audio_video);
+							call.on('stream', (remoteStream) => {
+								console.log(remoteStream);
+								document.querySelector("#conn_id").style.display = "none";
+								document.querySelector("#conn_id_btn").style.display = "none";
+								document.querySelector("#status").innerHTML = "Connecting... (this process can take around 5 seconds, please be patient)";
+								document.querySelector("#status").style.display = "block";
+								setTimeout(() => {
+									console.log(remoteStream);
+									document.querySelector("#status").style.display = "none";
+									document.querySelector("#video").srcObject = remoteStream;
+									document.querySelector("#video").style.display = "inline-block";
+									document.querySelector("#video_self").srcObject = window.stream_video;
+									document.querySelector("#video_self").style.display = "inline-block";
+								}, 5000);
 							});
-						});
-					}, function(err) {
-						console.log('Failed to get local stream' ,err);
-					});
+					}
 				});
 				document.querySelector("#id").innerHTML = "FluidityPeer ID: " + peer.id;
 				document.querySelector("main").style.display = "block";
@@ -44,21 +56,19 @@
 				let peer_id = document.querySelector("#conn_id").value;
 				document.querySelector("#conn_id").value = "";
 				
-				var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-				getUserMedia({video: true, audio: true}, function(stream) {
-					var call = peer.peer.call(peer_id, stream);
-					call.on('stream', function(remoteStream) {
-						document.querySelector("#conn_id").style.display = "none";
-						document.querySelector("#conn_id_btn").style.display = "none";
+				var call = await peer.peer.call(peer_id, window.stream_audio_video);
+				call.on('stream', async (remoteStream) => {
+					document.querySelector("#conn_id").style.display = "none";
+					document.querySelector("#conn_id_btn").style.display = "none";
+					document.querySelector("#status").innerHTML = "Connecting... (this process can take around 5 seconds, please be patient)";
+					document.querySelector("#status").style.display = "block";
+					setTimeout(() => {
+						document.querySelector("#status").style.display = "none";
 						document.querySelector("#video").srcObject = remoteStream;
 						document.querySelector("#video").style.display = "inline-block";
-						getUserMedia({video: true, audio: false}, function(myStream) {
-							document.querySelector("#video_self").srcObject = myStream;
-							document.querySelector("#video_self").style.display = "inline-block";
-						});
-					});
-				}, function(err) {
-					console.log('Failed to get local stream' ,err);
+						document.querySelector("#video_self").srcObject = window.stream_video;
+						document.querySelector("#video_self").style.display = "inline-block";
+					}, 5000);
 				});
 			}	
 			
