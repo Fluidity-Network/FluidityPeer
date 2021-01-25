@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<script src="fluiditypeer.js"></script>
+		<script src="peerjs.min.js"></script>
+	</head>
+	<body>
+		<main style="display: none">
+			<p id="id">FluidityPeer ID: </p>
+			<input id="conn_id" placeholder="FluidityPeer ID" /><button onclick="connect()" id="conn_id_btn">Connect</button>
+			<input id="message" style="display: none;" placeholder="Message" /><button onclick="send()" style="display: none;" id="message_btn">Send</button>
+			<p id="conversation"></p>
+		</main>
+		<script>
+			async function init() {
+				window.peer = await new FluidityPeer();
+				console.log("FluidityPeer ID: " + peer.id);
+				peer.onReceive = (data, conn_id, peer_id) => {
+					document.querySelector("#conversation").innerHTML += `
+						<p>
+							<b>` + peer_id + `: </b>` + data + `
+						</p>
+						<hr>
+					`;
+				}
+				peer.onConnect = (conn_id, peer_id) => {
+					window.connected_peer = new FluidityConnection(peer.peer.connections[peer_id].find(c => c.connectionId == conn_id));
+					document.querySelector("#conn_id").style.display = "none";
+					document.querySelector("#conn_id_btn").style.display = "none";
+					document.querySelector("#message").style.display = "block";
+					document.querySelector("#message_btn").style.display = "block";
+					document.querySelector("#conversation").innerHTML += `
+						<p>
+							<b>New Connection: </b>` + peer_id + `
+						</p>
+						<hr>
+					`;
+				}
+				document.querySelector("#id").innerHTML = "FluidityPeer ID: " + peer.id;
+				document.querySelector("main").style.display = "block";
+			}
+			
+			async function connect() {
+				let peer_id = document.querySelector("#conn_id").value;
+				document.querySelector("#conn_id").value = "";
+				window.connected_peer = await peer.connect(peer_id);
+				document.querySelector("#conn_id").style.display = "none";
+				document.querySelector("#conn_id_btn").style.display = "none";
+				document.querySelector("#message").style.display = "block";
+				document.querySelector("#message_btn").style.display = "block";
+				document.querySelector("#conversation").innerHTML += `
+					<p>
+						<b>New Connection: </b>` + peer_id + `
+					</p>
+					<hr>
+				`;
+			}
+			
+			async function send() {
+				let message = document.querySelector("#message").value;
+				if(window.connected_peer != null) {
+					document.querySelector("#message").value = "";
+					await window.connected_peer.send(message);
+					document.querySelector("#conversation").innerHTML += `
+						<p>
+							<b>` + window.peer.id + `: </b>` + message + `
+						</p>
+						<hr>
+					`;
+				}
+			}
+			
+			init();
+		</script>
+	</body>
+</html>
