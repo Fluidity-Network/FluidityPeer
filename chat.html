@@ -16,7 +16,6 @@
 		<script>
 			async function init() {
 				window.peer = await new FluidityPeer();
-				console.log("FluidityPeer ID: " + peer.id);
 				peer.onReceive = (data, conn_id, peer_id) => {
 					document.querySelector("#conversation").innerHTML += `
 						<p>
@@ -34,6 +33,19 @@
 					document.querySelector("#conversation").innerHTML += `
 						<p>
 							<b>New Connection: </b>` + peer_id + `
+						</p>
+						<hr>
+					`;
+				}
+				peer.onDisconnect = (conn_id, peer_id) => {
+					window.connected_peer = null;
+					document.querySelector("#conn_id").style.display = "block";
+					document.querySelector("#conn_id_btn").style.display = "block";
+					document.querySelector("#message").style.display = "none";
+					document.querySelector("#message_btn").style.display = "none";
+					document.querySelector("#conversation").innerHTML += `
+						<p>
+							<b>Closed Connection: </b>` + peer_id + `
 						</p>
 						<hr>
 					`;

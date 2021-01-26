@@ -25,7 +25,6 @@
 				});
 				
 				window.peer = await new FluidityPeer();
-				console.log("FluidityPeer ID: " + peer.id);
 				peer.onReceive = (data, conn_id, peer_id) => {
 					
 				}
@@ -34,13 +33,11 @@
 					if(confirm("Incoming call from " + call.peer + ". Answer?")) {
 						await call.answer(window.stream_outgoing);
 							call.on('stream', (remoteStream) => {
-								console.log(remoteStream);
 								document.querySelector("#conn_id").style.display = "none";
 								document.querySelector("#conn_id_btn").style.display = "none";
 								document.querySelector("#status").innerHTML = "Connecting... (this process can take around 5 seconds, please be patient)";
 								document.querySelector("#status").style.display = "block";
 								setTimeout(() => {
-									console.log(remoteStream);
 									document.querySelector("#status").style.display = "none";
 									document.querySelector("#video").srcObject = remoteStream;
 									document.querySelector("#video").style.display = "inline-block";
