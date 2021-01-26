@@ -6133,7 +6133,6 @@ function shimSendThrowTypeError(window) {
       if (dc.readyState === 'open' && pc.sctp && length > pc.sctp.maxMessageSize) {
         throw new TypeError('Message too large (can send a maximum of ' + pc.sctp.maxMessageSize + ' bytes)');
       }
-
       return origDataChannelSend.apply(dc, arguments);
     };
   }
@@ -7381,7 +7380,6 @@ function (_super) {
         logger_1.default.log("Invalid server message", event.data);
         return;
       }
-
       _this.emit(enums_1.SocketEventType.Message, data);
     };
 
@@ -7497,7 +7495,7 @@ function (_super) {
     }
 
     var message = JSON.stringify(data);
-
+    
     this._socket.send(message);
   };
 
