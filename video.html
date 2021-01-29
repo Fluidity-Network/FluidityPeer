@@ -49,10 +49,6 @@
 				});
 				document.querySelector("#id").innerHTML = "FluidityPeer ID: " + peer.id;
 				document.querySelector("main").style.display = "block";
-				<?php if(isset($_GET["id"]) && $_GET["id"] != ""): ?>
-				document.querySelector("#conn_id").value = '<?php echo($_GET["id"]); ?>';
-				callUser();
-				<?php endif; ?>
 			}
 			
 			async function callUser() {
