@@ -10,7 +10,7 @@ class FluidityPeer {
 				this.id = id;
 				this.connections = [];
 				this.onConnect = function(conn_id, peer_id) {}
-				this.onReceive = function(data, conn_id, peer_id) {}
+				this.onReceive = function(data, conn_id, peer_id, encrypted) {}
 				this.onDisconnect = function(conn_id, peer_id) {}
 				this.encrypted = true;
 				this.AESKey = null;
@@ -47,36 +47,46 @@ class FluidityPeer {
 			});
 		});
 	}
-	send(id, message) {
+	send(id, message, encrypted = true) {
 		return new Promise((resolve, reject) => {
-			let conn = this.connections.find(c => c.id == id);
+			let conn;
+			if(typeof id == "object") {
+				conn = this.connections.find(c => c.id == id.id && c.peer == id.peer);
+			} else {
+				conn = this.connections.find(c => c.id == id);
+			}
 			if(conn != null) {
-				conn.send(message);
+				conn.send(message, encrypted);
 				resolve(true);
 			} else {
 				reject("No peer found!");
 			}
 		});
 	}
-	broadcast(message) {
+	broadcast(message, encrypted = true) {
 		return new Promise(async (resolve, reject) => {
 			for(let i = 0; i < this.connections.length; i++) {
-				await this.send(this.connections[i].id, message);
+				await this.send(this.connections[i].id, message, encrypted);
 			}
 			resolve(true);
 		});
 	}
 	close(id) {
 		return new Promise((resolve, reject) => {
-			let conn = this.connections.find(c => c.id == id);
+			let conn;
+			if(typeof id == "object") {
+				conn = this.connections.find(c => c.id == id.id && c.peer == id.peer);
+			} else {
+				conn = this.connections.find(c => c.id == id);
+			}
 			let connIndex = this.connections.indexOf(conn);
 			if(conn != null) {
 				try {
-					conn.conn.close();
+					conn.close();
 				} catch(err) {
 
 				}
-				connections.splice(connIndex, 1);
+				this.connections.splice(connIndex, 1);
 				resolve(true);
 			} else {
 				reject("No peer found!");
@@ -91,7 +101,7 @@ class FluidityConnection {
 		this.parent = parent;
 		this.id = this.conn.connectionId;
 		this.peer = this.conn.peer;
-		this.onReceive = function(data, conn_id, peer_id) {}
+		this.onReceive = function(data, conn_id, peer_id, encrypted) {}
 		this.onDisconnect = function(conn_id, peer_id) {}
 		this.encrypted = true;
 		this.AESKey = null;
@@ -100,14 +110,15 @@ class FluidityConnection {
 			this.tEnvoy = window.TogaTech.tEnvoy;
 		}
 		conn.on('data', (data) => {
-			this.onReceive(this.decryptReceive(data), this.id, this.peer);
+			let decrypted = this.decryptReceive(data);
+			this.onReceive(decrypted.message, this.id, this.peer, decrypted.encrypted);
 		});
 		conn.on('close', () => {
 			this.parent.close(this.id);
 			this.onDisconnect(this.id, this.peer);
 		})
 	}
-	send(message) {
+	send(message, encrypted = true) {
 		let messageType = "string";
 		if(typeof message != "string") {
 			try {
@@ -118,7 +129,7 @@ class FluidityConnection {
 			}
 			
 		}
-		if(this.encrypted && this.AESKey != null && this.tEnvoy != null && this.tEnvoy.encrypt != null) {
+		if(encrypted && this.encrypted && this.AESKey != null && this.tEnvoy != null && this.tEnvoy.encrypt != null) {
 			message = {
 				encrypted: true,
 				type: messageType,
@@ -138,11 +149,13 @@ class FluidityConnection {
 	}
 	decryptReceive(message) {
 		let messageType = message.type;
+		let encrypted = false;
 		if(message.encrypted && this.encrypted && this.AESKey != null && this.tEnvoy != null && this.tEnvoy.decrypt != null) {
 			message = this.tEnvoy.decrypt({
 				AESKey: this.AESKey,
 				string: message.packet
 			});
+			encrypted = true;
 		} else {
 			message = message.packet;
 		}
@@ -152,6 +165,12 @@ class FluidityConnection {
 			} catch(err) {
 			}
 		}
-		return message;
+		return {
+			message: message,
+			encrypted: encrypted
+		};
+	}
+	close() {
+		this.conn.close();
 	}
 }
